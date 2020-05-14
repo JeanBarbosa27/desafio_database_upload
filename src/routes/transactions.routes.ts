@@ -11,11 +11,9 @@ const transactionsRouter = Router();
 
 transactionsRouter.get('/', async (request, response) => {
   const transactionsRepository = new TransactionsRepository();
-  const repository = getRepository(Transaction);
-  const transactions = await repository.find();
-  const balance = await transactionsRepository.getBalance();
+  const allTransactions = await transactionsRepository.all();
 
-  return response.json({ transactions, balance, });
+  return response.json(allTransactions);
 });
 
 transactionsRouter.post('/', async (request, response) => {

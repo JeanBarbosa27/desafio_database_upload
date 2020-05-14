@@ -1,6 +1,7 @@
 import { EntityRepository, Repository, getRepository } from 'typeorm';
 
 import Transaction from '../models/Transaction';
+import { response } from 'express';
 
 interface Balance {
   income: number;
@@ -12,11 +13,41 @@ interface ReducerReturn {
   value: number;
 }
 
+interface AllTransactionsDTO {
+  transactions: Transaction[];
+
+  balance: Balance;
+}
+
 @EntityRepository(Transaction)
 class TransactionsRepository extends Repository<Transaction> {
+  private transactions: null | Transaction[];
+  private transactionsRepository = getRepository(Transaction);
+
+  private async getTransactions(): Promise<Transaction[]> {
+    return await this.transactionsRepository.find();
+  }
+
+  public async all(): Promise<AllTransactionsDTO | {}> {
+    this.transactions = await this.getTransactions();
+
+    if (!this.transactions.length) {
+      this.transactions = null;
+      return { message: 'There are no transactions yet! '};
+    }
+
+    const balance = this.getBalance();
+
+    return {
+      transactions: this.transactions,
+      balance,
+    }
+  }
+
   public async getBalance(): Promise<Balance> {
-    const transactionsRepository = getRepository(Transaction);
-    const transactions = await transactionsRepository.find();
+    const transactions = this.transactions
+      ? this.transactions
+      : await this.getTransactions();
 
     const reducer = (type: 'income' | 'outcome'): ReducerReturn => {
       const transactionsFiltered = transactions.filter(
@@ -25,7 +56,7 @@ class TransactionsRepository extends Repository<Transaction> {
 
       const transactionsReduced = transactionsFiltered.length
         ? transactionsFiltered.reduce(
-          (current, accumulator) => {
+          (accumulator, current) => {
             return {
               value: current.value + accumulator.value,
             }
