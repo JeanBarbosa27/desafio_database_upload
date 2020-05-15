@@ -1,7 +1,6 @@
 import { EntityRepository, Repository, getRepository } from 'typeorm';
 
 import Transaction from '../models/Transaction';
-import { response } from 'express';
 
 interface Balance {
   income: number;
@@ -22,10 +21,12 @@ interface AllTransactionsDTO {
 @EntityRepository(Transaction)
 class TransactionsRepository extends Repository<Transaction> {
   private transactions: null | Transaction[];
+
   private transactionsRepository = getRepository(Transaction);
 
   private async getTransactions(): Promise<Transaction[]> {
-    return await this.transactionsRepository.find();
+    const transactions = await this.transactionsRepository.find();
+    return transactions;
   }
 
   public async all(): Promise<AllTransactionsDTO | {}> {
@@ -33,7 +34,7 @@ class TransactionsRepository extends Repository<Transaction> {
 
     if (!this.transactions.length) {
       this.transactions = null;
-      return { message: 'There are no transactions yet! '};
+      return { message: 'There are no transactions yet!' };
     }
 
     const balance = this.getBalance();
@@ -41,7 +42,7 @@ class TransactionsRepository extends Repository<Transaction> {
     return {
       transactions: this.transactions,
       balance,
-    }
+    };
   }
 
   public async getBalance(): Promise<Balance> {
@@ -51,22 +52,22 @@ class TransactionsRepository extends Repository<Transaction> {
 
     const reducer = (type: 'income' | 'outcome'): ReducerReturn => {
       const transactionsFiltered = transactions.filter(
-        transaction => transaction.type === type
+        transaction => transaction.type === type,
       );
 
       const transactionsReduced = transactionsFiltered.length
         ? transactionsFiltered.reduce(
-          (accumulator, current) => {
-            return {
-              value: current.value + accumulator.value,
-            }
-          },
-          { value: 0 }
-        )
-        : { value: 0 }
+            (accumulator, current) => {
+              return {
+                value: current.value + accumulator.value,
+              };
+            },
+            { value: 0 },
+          )
+        : { value: 0 };
 
       return transactionsReduced;
-    }
+    };
 
     const income = reducer('income').value;
     const outcome = reducer('outcome').value;
@@ -75,7 +76,7 @@ class TransactionsRepository extends Repository<Transaction> {
       income,
       outcome,
       total,
-    }
+    };
 
     return balance;
   }
