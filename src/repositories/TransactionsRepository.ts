@@ -37,7 +37,7 @@ class TransactionsRepository extends Repository<Transaction> {
       return { message: 'There are no transactions yet!' };
     }
 
-    const balance = this.getBalance();
+    const balance = await this.getBalance();
 
     return {
       transactions: this.transactions,
@@ -59,7 +59,7 @@ class TransactionsRepository extends Repository<Transaction> {
         ? transactionsFiltered.reduce(
             (accumulator, current) => {
               return {
-                value: current.value + accumulator.value,
+                value: +current.value + +accumulator.value,
               };
             },
             { value: 0 },
