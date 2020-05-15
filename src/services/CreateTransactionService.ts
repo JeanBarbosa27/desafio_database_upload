@@ -56,8 +56,6 @@ class CreateTransactionService {
 
     await transactionsRepository.save(transaction);
 
-    delete transaction.id;
-
     return transaction;
   }
 }
