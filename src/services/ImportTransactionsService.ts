@@ -27,29 +27,27 @@ class ImportTransactionsService {
 
     registries.map(async registry => {
       const { title, value, type, category } = registry;
-
       const categoryEntity = await categoriesRepository.findOne({
         where: { category },
       });
-
-      const categoryId = categoryEntity?.id;
+      let categoryId = categoryEntity?.id;
 
       if (!categoryId) {
         const newCategory = categoriesRepository.create({ title: category });
-        await categoriesRepository.save(newCategory);
+        const categoryCreated = await categoriesRepository.save(newCategory);
+        categoryId = categoryCreated.id;
       }
 
-      const registryEdited = {
+      return transactions.push({
         title,
         value,
         type,
         category_id: categoryId,
-      };
-      const transaction = transactionsRepository.create(registryEdited);
-      return transactions.push(transaction);
+      });
     });
 
-    await transactionsRepository.save(transactions);
+    const createTransactions = transactionsRepository.create(transactions);
+    await transactionsRepository.save(createTransactions);
 
     return transactions;
   }
