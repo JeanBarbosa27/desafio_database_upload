@@ -21,10 +21,12 @@ interface RegistriesDTO {
 }
 
 class ImportTransactionsService {
-  async execute(registries: RequestDTO[]): Promise<Transaction[]> {
+  async execute(fileName: string): Promise<Transaction[]> {
     const transactionsRepository = getRepository(Transaction);
     const categoriesRepository = getRepository(Category);
-    console.log(registries);
+    const transactions = [] as Transaction[];
+    const csvFilePath = path.resolve(__dirname, '..', '..', 'tmp', fileName);
+    const fileRegistries = [] as RequestDTO[];
 
     async function loadCSV(filePath: string): Promise<string[]> {
       const readCsvStream = fs.createReadStream(filePath);
@@ -49,12 +51,20 @@ class ImportTransactionsService {
       return lines;
     }
 
-    const fileName = 'import_transactions.csv'; // virá a partir dos parâmetros
-    const csvFilePath = path.resolve(__dirname, '..', '..', 'tmp', fileName);
+    async function findCategoryId(title: string): Promise<string> {
+      const category = await categoriesRepository.findOne({ where: { title } });
+
+      if (!category) {
+        const newCategory = categoriesRepository.create({ title });
+        const categoryCreated = await categoriesRepository.save(newCategory);
+        return categoryCreated.id;
+      }
+
+      return category?.id;
+    }
 
     const fileLines = await loadCSV(csvFilePath);
     const transactionKeys = fileLines[0];
-    const fileRegistries = [] as RequestDTO[];
 
     fileLines.forEach((line, index) => {
       const transactionObject = {} as RequestDTO;
@@ -74,24 +84,12 @@ class ImportTransactionsService {
       }
     });
 
-    const transactions = [] as Transaction[];
-    const categories = await categoriesRepository.find();
-
-    fileRegistries.map(async registry => {
-      const { title, value, type, category: categoryTitle } = registry;
-      const [category] = categories.filter(categoryEntity => {
-        return categoryEntity.title === categoryTitle;
-      });
-      let categoryId = category?.id;
-
-      if (!categoryId) {
-        const newCategory = categoriesRepository.create({
-          title: categoryTitle,
-        });
-        const categoryCreated = await categoriesRepository.save(newCategory);
-        categories.push(categoryCreated);
-        categoryId = categoryCreated.id;
-      }
+    let fileRegistriesIndex = 0;
+    while (fileRegistriesIndex < fileRegistries.length) {
+      const { title, value, type, category: categoryTitle } = fileRegistries[
+        fileRegistriesIndex
+      ];
+      const categoryId = await findCategoryId(categoryTitle);
 
       const registryEdited = {
         title,
@@ -101,10 +99,11 @@ class ImportTransactionsService {
       } as RegistriesDTO;
 
       const createTransaction = transactionsRepository.create(registryEdited);
-      return transactions.push(createTransaction);
-    });
+      transactions.push(createTransaction);
+      fileRegistriesIndex += 1;
+    }
 
-    // await transactionsRepository.save(transactions);
+    await transactionsRepository.save(transactions);
 
     return transactions;
   }
