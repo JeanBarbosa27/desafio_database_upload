@@ -1,4 +1,4 @@
-import { getRepository } from 'typeorm';
+import { getRepository, getCustomRepository } from 'typeorm';
 
 import TransactionsRepository from '../repositories/TransactionsRepository';
 import Transaction from '../models/Transaction';
@@ -22,10 +22,9 @@ class CreateTransactionService {
     type,
     category,
   }: RequestDTO): Promise<Transaction> {
-    const transactionsRepository = getRepository(Transaction);
-    const transactionsBalance = new TransactionsRepository();
+    const transactionsRepository = getCustomRepository(TransactionsRepository);
     const categoriesRepository = getRepository(Category);
-    const balance = await transactionsBalance.getBalance();
+    const balance = await transactionsRepository.getBalance();
 
     if (!title || !value || !type || !category) {
       throw new AppError(
@@ -37,28 +36,25 @@ class CreateTransactionService {
       throw new AppError('outcome must be less than income balance');
     }
 
-    const findCategory = await categoriesRepository.findOne({
+    let transactionCategory = await categoriesRepository.findOne({
       where: {
         title: category,
       },
     });
 
-    let categoryId = findCategory?.id;
-
-    if (!categoryId) {
-      const newCategory = categoriesRepository.create({
+    if (!transactionCategory) {
+      transactionCategory = categoriesRepository.create({
         title: category,
       });
 
-      const categorySaved = await categoriesRepository.save(newCategory);
-      categoryId = categorySaved.id;
+      await categoriesRepository.save(transactionCategory);
     }
 
     const transaction = transactionsRepository.create({
       title,
       value,
       type,
-      category_id: categoryId,
+      category: transactionCategory,
     });
 
     await transactionsRepository.save(transaction);
