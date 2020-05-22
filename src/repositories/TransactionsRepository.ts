@@ -20,65 +20,40 @@ interface AllTransactionsDTO {
 
 @EntityRepository(Transaction)
 class TransactionsRepository extends Repository<Transaction> {
-  private transactions: null | Transaction[];
+  public async getBalance(): Promise<Balance> {
+    const transactions = await this.find();
 
-  private transactionsRepository = getRepository(Transaction);
+    const { income, outcome } = transactions.reduce(
+      (accumulator, transaction) => {
+        switch (transaction.type) {
+          case 'income':
+            accumulator.income += Number(transaction.value);
+            break;
 
-  private async getTransactions(): Promise<Transaction[]> {
-    const transactions = await this.transactionsRepository.find();
-    return transactions;
-  }
+          case 'outcome':
+            accumulator.outcome += Number(transaction.value);
+            break;
 
-  public async all(): Promise<AllTransactionsDTO | {}> {
-    this.transactions = await this.getTransactions();
+          default:
+            break;
+        }
 
-    if (!this.transactions.length) {
-      this.transactions = null;
-      return { message: 'There are no transactions yet!' };
-    }
+        return accumulator;
+      },
+      {
+        income: 0,
+        outcome: 0,
+        total: 0,
+      },
+    );
 
-    const balance = await this.getBalance();
+    const total = income - outcome;
 
     return {
-      transactions: this.transactions,
-      balance,
-    };
-  }
-
-  public async getBalance(): Promise<Balance> {
-    const transactions = this.transactions
-      ? this.transactions
-      : await this.getTransactions();
-
-    const reducer = (type: 'income' | 'outcome'): ReducerReturn => {
-      const transactionsFiltered = transactions.filter(
-        transaction => transaction.type === type,
-      );
-
-      const transactionsReduced = transactionsFiltered.length
-        ? transactionsFiltered.reduce(
-            (accumulator, current) => {
-              return {
-                value: +current.value + +accumulator.value,
-              };
-            },
-            { value: 0 },
-          )
-        : { value: 0 };
-
-      return transactionsReduced;
-    };
-
-    const income = reducer('income').value;
-    const outcome = reducer('outcome').value;
-    const total = income - outcome;
-    const balance = {
       income,
       outcome,
       total,
     };
-
-    return balance;
   }
 }
 
