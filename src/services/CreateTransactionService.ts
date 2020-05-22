@@ -1,5 +1,6 @@
 import { getRepository } from 'typeorm';
 
+import TransactionsRepository from '../repositories/TransactionsRepository';
 import Transaction from '../models/Transaction';
 import Category from '../models/Category';
 import AppError from '../errors/AppError';
@@ -22,12 +23,18 @@ class CreateTransactionService {
     category,
   }: RequestDTO): Promise<Transaction> {
     const transactionsRepository = getRepository(Transaction);
+    const transactionsBalance = new TransactionsRepository();
     const categoriesRepository = getRepository(Category);
+    const balance = await transactionsBalance.getBalance();
 
     if (!title || !value || !type || !category) {
       throw new AppError(
         'All fields (title, value, type and category) are required!',
       );
+    }
+
+    if (type === 'outcome' && value > balance.income) {
+      throw new AppError('outcome must be less than income balance');
     }
 
     const findCategory = await categoriesRepository.findOne({
