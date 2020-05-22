@@ -70,14 +70,9 @@ class ImportTransactionsService {
       const transactionObject = {} as RequestDTO;
 
       if (index > 0) {
-        line.forEach((item, itemIndex) => {
+        line.forEach((item: string, itemIndex: number) => {
           const column = transactionKeys[itemIndex];
-
-          if (column === 'value') {
-            transactionObject[column] = +item;
-          } else {
-            transactionObject[column] = item;
-          }
+          transactionObject[column] = column === 'value' ? +item : item;
         });
 
         fileRegistries.push(transactionObject);
