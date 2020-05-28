@@ -1,6 +1,6 @@
 # Go Stack 11 - Desafio Database Upload
 
-Este repositório foi criado com o objetivo de entregar o desafio do módulo de conceitos básicos do React Native do bootcamp Go Stack da Rocketseat, através deste link.
+Este repositório foi criado com o objetivo de entregar o desafio do módulo de conceitos básicos do NodeJS com typescript e TypeORM para comunicação com bando de dados, do bootcamp Go Stack da Rocketseat, através deste link.
 
 ## Escopo do desafio (conteúdo oriundo do repositório de desafios da Rocketseat)
 
